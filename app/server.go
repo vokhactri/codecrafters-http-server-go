@@ -14,6 +14,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// task 6
 	// Accept and handle incoming connections
 	for {
 		conn, err := listener.Accept()
@@ -52,22 +53,26 @@ func handleClient(conn net.Conn) {
 		bufferArr := strings.Split(string(buffer[:n]), "\r\n")
 		startLine := bufferArr[0]
 		path := strings.Split(startLine, " ")[1]
+		// task 2
 		if path == "/" {
 			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 			return
 		}
+		// task 4
 		if strings.HasPrefix(path, "/echo/") {
 			randomString := strings.TrimPrefix(path, "/echo/")
 			content := formatResponseContent(randomString)
 			conn.Write([]byte(content))
 			return
 		}
+		// task 5
 		if path == "/user-agent" {
 			user_agent := strings.Split(bufferArr[2], " ")[1]
 			content := formatResponseContent(user_agent)
 			conn.Write([]byte(content))
 			return
 		}
+		// task 3
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
 }
