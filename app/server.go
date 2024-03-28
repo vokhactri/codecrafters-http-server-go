@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"net"
@@ -83,36 +82,21 @@ func handleClient(conn net.Conn) {
 		if strings.HasPrefix(path, "/files/") {
 			fileName := strings.TrimPrefix(path, "/files")
 			fileDir := dirPointer + fileName
-			file, err := os.Open(fileDir)
+			_, err := os.Open(fileDir)
 			if err != nil {
 				fmt.Println("Error opening file: ", err.Error())
 				conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 				return
 			}
-			defer file.Close()
+
+			file, _ := os.ReadFile(fileDir)
 
 			conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
 			conn.Write([]byte("Content-Type: application/octet-stream\r\n"))
+			conn.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n", len(file))))
 			conn.Write([]byte("\r\n"))
-
-			// Create a bufferedReader to efficiently read file contents
-			reader := bufio.NewReader(file)
-
-			// Create a buffer to store data read from the file
-			buffer := make([]byte, 1024)
-
-			// Read file contents and write them to the TCP connection
-			for {
-				bytesRead, err := reader.Read(buffer)
-				if err != nil {
-					return
-				}
-				if bytesRead == 0 {
-					conn.Write([]byte("\r\n\r\n"))
-					break // End of file
-				}
-				conn.Write(buffer[:bytesRead])
-			}
+			conn.Write(file)
+			return
 		}
 		// task 3
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
