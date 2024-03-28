@@ -1,11 +1,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"os"
 	"strings"
 )
+
+var dirPointer string
 
 func main() {
 	listener, err := net.Listen("tcp", "0.0.0.0:4221")
@@ -13,6 +16,9 @@ func main() {
 		fmt.Println("Failed to bind to port 4221")
 		os.Exit(1)
 	}
+
+	flag.StringVar(&dirPointer, "directory", "", "a directory")
+	flag.Parse()
 
 	// task 6
 	// Accept and handle incoming connections
@@ -28,7 +34,7 @@ func main() {
 	}
 }
 
-func formatResponseContent(content string) string {
+func formatPlainTextContent(content string) string {
 	return strings.Join(
 		[]string{
 			"HTTP/1.1 200 OK",
@@ -61,15 +67,35 @@ func handleClient(conn net.Conn) {
 		// task 4
 		if strings.HasPrefix(path, "/echo/") {
 			randomString := strings.TrimPrefix(path, "/echo/")
-			content := formatResponseContent(randomString)
+			content := formatPlainTextContent(randomString)
 			conn.Write([]byte(content))
 			return
 		}
 		// task 5
 		if path == "/user-agent" {
 			user_agent := strings.Split(bufferArr[2], " ")[1]
-			content := formatResponseContent(user_agent)
+			content := formatPlainTextContent(user_agent)
 			conn.Write([]byte(content))
+			return
+		}
+		// task 7
+		if strings.HasPrefix(path, "/files/") {
+			fileName := strings.TrimPrefix(path, "/files")
+			fileDir := dirPointer + fileName
+			file, err := os.Open(fileDir)
+			if err != nil {
+				fmt.Println("Error opening file: ", err.Error())
+				conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+				return
+			}
+			defer file.Close()
+
+			data, _ := os.ReadFile(fileDir)
+
+			conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
+			conn.Write([]byte("Content-Type: application/octet-stream\r\n"))
+			conn.Write([]byte("\r\n"))
+			conn.Write(data)
 			return
 		}
 		// task 3
