@@ -86,6 +86,7 @@ func handleClient(conn net.Conn) {
 			file, err := os.Open(fileDir)
 			if err != nil {
 				conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+				conn.Close()
 				return
 			}
 			defer file.Close()
