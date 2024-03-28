@@ -108,6 +108,7 @@ func handleClient(conn net.Conn) {
 					return
 				}
 				if bytesRead == 0 {
+					conn.Write([]byte("\r\n\r\n"))
 					break // End of file
 				}
 				conn.Write(buffer[:bytesRead])
