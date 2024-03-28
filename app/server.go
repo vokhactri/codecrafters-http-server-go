@@ -74,31 +74,47 @@ func handleClient(conn net.Conn) {
 		}
 		// task 5
 		if path == "/user-agent" {
-			user_agent := strings.Split(bufferArr[2], " ")[1]
-			content := formatPlainTextContent(user_agent)
+			userAgent := strings.Split(bufferArr[2], " ")[1]
+			content := formatPlainTextContent(userAgent)
 			conn.Write([]byte(content))
 			return
 		}
 		// task 7
 		if strings.HasPrefix(path, "/files/") {
+			method := strings.Split(startLine, " ")[0]
 			fileName := strings.TrimPrefix(path, "/files/")
 			fileDir := filepath.Join(directory, fileName)
-			file, err := os.Open(fileDir)
-			if err != nil {
-				conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-				conn.Close()
+
+			if method == "GET" {
+				file, err := os.Open(fileDir)
+				if err != nil {
+					conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+					conn.Close()
+					return
+				}
+				defer file.Close()
+
+				fileContent, _ := os.ReadFile(fileDir)
+
+				conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
+				conn.Write([]byte("Content-Type: application/octet-stream\r\n"))
+				conn.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n", len(fileContent))))
+				conn.Write([]byte("\r\n"))
+				conn.Write(fileContent)
 				return
 			}
-			defer file.Close()
 
-			fileContent, _ := os.ReadFile(fileDir)
+			if method == "POST" {
+				err := os.WriteFile(fileDir, []byte(bufferArr[len(bufferArr)-1]), 0644)
+				if err != nil {
+					conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+					conn.Close()
+					return
+				}
 
-			conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
-			conn.Write([]byte("Content-Type: application/octet-stream\r\n"))
-			conn.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n", len(fileContent))))
-			conn.Write([]byte("\r\n"))
-			conn.Write(fileContent)
-			return
+				conn.Write([]byte("HTTP/1.1 201 Created\r\n\r\n"))
+				return
+			}
 		}
 		// task 3
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
