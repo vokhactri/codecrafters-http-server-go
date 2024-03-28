@@ -83,19 +83,20 @@ func handleClient(conn net.Conn) {
 		if strings.HasPrefix(path, "/files/") {
 			fileName := strings.TrimPrefix(path, "/files/")
 			fileDir := filepath.Join(directory, fileName)
-			_, err := os.Open(fileDir)
+			file, err := os.Open(fileDir)
 			if err != nil {
 				conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 				return
 			}
+			defer file.Close()
 
-			file, _ := os.ReadFile(fileDir)
+			fileContent, _ := os.ReadFile(fileDir)
 
 			conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
 			conn.Write([]byte("Content-Type: application/octet-stream\r\n"))
-			conn.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n", len(file))))
+			conn.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n", len(fileContent))))
 			conn.Write([]byte("\r\n"))
-			conn.Write(file)
+			conn.Write(fileContent)
 			return
 		}
 		// task 3
