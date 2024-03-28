@@ -20,33 +20,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	buffer := make([]byte, 1024)
-	n, err := conn.Read(buffer)
-	if err != nil {
-		fmt.Println("Error reading from connection: ", err.Error())
-		os.Exit(1)
-	}
-
-	buffer_arr := strings.Split(string(buffer[:n]), "\r\n")
-	start_line := buffer_arr[0]
-	path := strings.Split(start_line, " ")[1]
-	if path == "/" {
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-		return
-	}
-	if strings.HasPrefix(path, "/echo/") {
-		random_string := strings.TrimPrefix(path, "/echo/")
-		content := formatResponseContent(random_string)
-		conn.Write([]byte(content))
-		return
-	}
-	if path == "/user-agent" {
-		user_agent := strings.Split(buffer_arr[2], " ")[1]
-		content := formatResponseContent(user_agent)
-		conn.Write([]byte(content))
-		return
-	}
-	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+	go handleConnection(conn)
 }
 
 func formatResponseContent(content string) string {
@@ -59,4 +33,34 @@ func formatResponseContent(content string) string {
 			content + "\r\n",
 		},
 		"\r\n")
+}
+
+func handleConnection(conn net.Conn) {
+	buffer := make([]byte, 1024)
+	n, err := conn.Read(buffer)
+	if err != nil {
+		fmt.Println("Error reading from connection: ", err.Error())
+		os.Exit(1)
+	}
+
+	bufferArr := strings.Split(string(buffer[:n]), "\r\n")
+	startLine := bufferArr[0]
+	path := strings.Split(startLine, " ")[1]
+	if path == "/" {
+		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+		return
+	}
+	if strings.HasPrefix(path, "/echo/") {
+		randomString := strings.TrimPrefix(path, "/echo/")
+		content := formatResponseContent(randomString)
+		conn.Write([]byte(content))
+		return
+	}
+	if path == "/user-agent" {
+		user_agent := strings.Split(bufferArr[2], " ")[1]
+		content := formatResponseContent(user_agent)
+		conn.Write([]byte(content))
+		return
+	}
+	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 }
