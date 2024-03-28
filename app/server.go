@@ -35,11 +35,16 @@ func main() {
 	}
 	if strings.HasPrefix(path, "/echo/") {
 		random_string := strings.TrimPrefix(path, "/echo/")
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
-		conn.Write([]byte("Content-Type: text/plain\r\n"))
-		conn.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n", len(random_string))))
-		conn.Write([]byte("\r\n"))
-		conn.Write([]byte(fmt.Sprintf("%s\r\n\r\n", random_string)))
+		content := strings.Join(
+			[]string{
+				"HTTP/1.1 200 OK",
+				"Content-Type: text/plain",
+				"Content-Length: " + fmt.Sprint(len(random_string)),
+				"",
+				random_string + "\r\n",
+			},
+			"\r\n")
+		conn.Write([]byte(content))
 		return
 	}
 	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
