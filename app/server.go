@@ -21,7 +21,6 @@ func main() {
 	flag.StringVar(&directory, "directory", "", "a directory")
 	flag.Parse()
 
-	// task 6
 	// Accept and handle incoming connections
 	for {
 		conn, err := listener.Accept()
@@ -47,76 +46,76 @@ func formatPlainTextContent(content string) string {
 		"\r\n")
 }
 
-func handleClient(conn net.Conn) {
+func handleClient(clientConn net.Conn) {
 	buffer := make([]byte, 1024)
 
 	for {
-		n, err := conn.Read(buffer)
+		n, err := clientConn.Read(buffer)
 		if err != nil {
-			fmt.Println("Error reading from connection: ", err.Error())
-			os.Exit(1)
+			clientConn.Close()
+			return
 		}
 
-		bufferArr := strings.Split(string(buffer[:n]), "\r\n")
-		startLine := bufferArr[0]
-		path := strings.Split(startLine, " ")[1]
-		// task 2
-		if path == "/" {
-			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-			return
-		}
-		// task 4
-		if strings.HasPrefix(path, "/echo/") {
-			randomString := strings.TrimPrefix(path, "/echo/")
-			content := formatPlainTextContent(randomString)
-			conn.Write([]byte(content))
-			return
-		}
-		// task 5
-		if path == "/user-agent" {
-			userAgent := strings.Split(bufferArr[2], " ")[1]
+		request := strings.Split(string(buffer[:n]), "\r\n")
+		requestLine := request[0]
+		path := strings.Split(requestLine, " ")[1]
+
+		switch {
+		case path == "/":
+			clientConn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+		case strings.HasPrefix(path, "/echo/"):
+			content := formatPlainTextContent(strings.TrimPrefix(path, "/echo/"))
+			clientConn.Write([]byte(content))
+		case path == "/user-agent":
+			userAgent := strings.Split(request[2], " ")[1]
 			content := formatPlainTextContent(userAgent)
-			conn.Write([]byte(content))
-			return
+			clientConn.Write([]byte(content))
+		case strings.HasPrefix(path, "/files/"):
+			handleFileRequest(clientConn, path, request, directory)
+		default:
+			clientConn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 		}
-		// task 7
-		if strings.HasPrefix(path, "/files/") {
-			method := strings.Split(startLine, " ")[0]
-			fileName := strings.TrimPrefix(path, "/files/")
-			fileDir := filepath.Join(directory, fileName)
-
-			if method == "GET" {
-				file, err := os.Open(fileDir)
-				if err != nil {
-					conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-					conn.Close()
-					return
-				}
-				defer file.Close()
-
-				fileContent, _ := os.ReadFile(fileDir)
-
-				conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
-				conn.Write([]byte("Content-Type: application/octet-stream\r\n"))
-				conn.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n", len(fileContent))))
-				conn.Write([]byte("\r\n"))
-				conn.Write(fileContent)
-				return
-			}
-
-			if method == "POST" {
-				err := os.WriteFile(fileDir, []byte(bufferArr[len(bufferArr)-1]), 0644)
-				if err != nil {
-					conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-					conn.Close()
-					return
-				}
-
-				conn.Write([]byte("HTTP/1.1 201 Created\r\n\r\n"))
-				return
-			}
-		}
-		// task 3
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
+}
+
+func handleFileRequest(conn net.Conn, path string, request []string, directory string) {
+	method := strings.Split(request[0], " ")[0]
+	fileName := strings.TrimPrefix(path, "/files/")
+	filePath := filepath.Join(directory, fileName)
+
+	switch {
+	case method == "GET":
+		handleFileGetRequest(conn, filePath)
+	case method == "POST":
+		handleFilePostRequest(conn, filePath, request)
+	}
+}
+
+func handleFileGetRequest(conn net.Conn, filePath string) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		conn.Close()
+		return
+	}
+	defer file.Close()
+
+	fileContent, _ := os.ReadFile(filePath)
+
+	conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
+	conn.Write([]byte("Content-Type: application/octet-stream\r\n"))
+	conn.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n", len(fileContent))))
+	conn.Write([]byte("\r\n"))
+	conn.Write(fileContent)
+}
+
+func handleFilePostRequest(conn net.Conn, filePath string, request []string) {
+	err := os.WriteFile(filePath, []byte(request[len(request)-1]), 0644)
+	if err != nil {
+		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		conn.Close()
+		return
+	}
+
+	conn.Write([]byte("HTTP/1.1 201 Created\r\n\r\n"))
 }
