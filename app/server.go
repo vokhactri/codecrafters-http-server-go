@@ -27,7 +27,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	start_line := strings.Split(string(buffer[:n]), "\r\n")[0]
+	buffer_arr := strings.Split(string(buffer[:n]), "\r\n")
+	start_line := buffer_arr[0]
 	path := strings.Split(start_line, " ")[1]
 	if path == "/" {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
@@ -35,17 +36,27 @@ func main() {
 	}
 	if strings.HasPrefix(path, "/echo/") {
 		random_string := strings.TrimPrefix(path, "/echo/")
-		content := strings.Join(
-			[]string{
-				"HTTP/1.1 200 OK",
-				"Content-Type: text/plain",
-				"Content-Length: " + fmt.Sprint(len(random_string)),
-				"",
-				random_string + "\r\n",
-			},
-			"\r\n")
+		content := formatResponseContent(random_string)
+		conn.Write([]byte(content))
+		return
+	}
+	if path == "/user-agent" {
+		user_agent := strings.Split(buffer_arr[2], " ")[1]
+		content := formatResponseContent(user_agent)
 		conn.Write([]byte(content))
 		return
 	}
 	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+}
+
+func formatResponseContent(content string) string {
+	return strings.Join(
+		[]string{
+			"HTTP/1.1 200 OK",
+			"Content-Type: text/plain",
+			"Content-Length: " + fmt.Sprint(len(content)),
+			"",
+			content + "\r\n",
+		},
+		"\r\n")
 }
