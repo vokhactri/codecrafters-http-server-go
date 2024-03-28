@@ -47,12 +47,12 @@ func formatPlainTextContent(content string) string {
 }
 
 func handleClient(clientConn net.Conn) {
+	defer clientConn.Close()
 	buffer := make([]byte, 1024)
 
 	for {
 		n, err := clientConn.Read(buffer)
 		if err != nil {
-			clientConn.Close()
 			return
 		}
 
@@ -95,7 +95,6 @@ func handleFileGetRequest(conn net.Conn, filePath string) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-		conn.Close()
 		return
 	}
 	defer file.Close()
@@ -113,7 +112,6 @@ func handleFilePostRequest(conn net.Conn, filePath string, request []string) {
 	err := os.WriteFile(filePath, []byte(request[len(request)-1]), 0644)
 	if err != nil {
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-		conn.Close()
 		return
 	}
 
