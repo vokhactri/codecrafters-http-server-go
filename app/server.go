@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
-var dirPointer string
+var directory string
 
 func main() {
 	listener, err := net.Listen("tcp", "0.0.0.0:4221")
@@ -17,7 +18,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	flag.StringVar(&dirPointer, "directory", "", "a directory")
+	flag.StringVar(&directory, "directory", "", "a directory")
 	flag.Parse()
 
 	// task 6
@@ -80,11 +81,10 @@ func handleClient(conn net.Conn) {
 		}
 		// task 7
 		if strings.HasPrefix(path, "/files/") {
-			fileName := strings.TrimPrefix(path, "/files")
-			fileDir := dirPointer + fileName
+			fileName := strings.TrimPrefix(path, "/files/")
+			fileDir := filepath.Join(directory, fileName)
 			_, err := os.Open(fileDir)
 			if err != nil {
-				fmt.Println("Error opening file: ", err.Error())
 				conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 				return
 			}
