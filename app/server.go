@@ -63,17 +63,22 @@ func handleClient(clientConn net.Conn) {
 		switch {
 		case path == "/":
 			clientConn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+			clientConn.Close()
 		case strings.HasPrefix(path, "/echo/"):
 			content := formatPlainTextContent(strings.TrimPrefix(path, "/echo/"))
+			clientConn.Close()
 			clientConn.Write([]byte(content))
 		case path == "/user-agent":
 			userAgent := strings.Split(request[2], " ")[1]
+			clientConn.Close()
 			content := formatPlainTextContent(userAgent)
 			clientConn.Write([]byte(content))
 		case strings.HasPrefix(path, "/files/"):
 			handleFileRequest(clientConn, path, request, directory)
+			clientConn.Close()
 		default:
 			clientConn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+			clientConn.Close()
 		}
 	}
 }
@@ -95,7 +100,6 @@ func handleFileGetRequest(conn net.Conn, filePath string) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-		conn.Close()
 		return
 	}
 	defer file.Close()
