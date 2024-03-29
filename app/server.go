@@ -47,6 +47,8 @@ func formatPlainTextContent(content string) string {
 }
 
 func handleClient(clientConn net.Conn) {
+	defer clientConn.Close()
+
 	buffer := make([]byte, 1024)
 	n, err := clientConn.Read(buffer)
 	if err != nil {
@@ -61,22 +63,17 @@ func handleClient(clientConn net.Conn) {
 	switch {
 	case path == "/":
 		clientConn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-		clientConn.Close()
 	case strings.HasPrefix(path, "/echo/"):
 		content := formatPlainTextContent(strings.TrimPrefix(path, "/echo/"))
 		clientConn.Write([]byte(content))
-		clientConn.Close()
 	case path == "/user-agent":
 		userAgent := strings.Split(request[2], " ")[1]
 		content := formatPlainTextContent(userAgent)
 		clientConn.Write([]byte(content))
-		clientConn.Close()
 	case strings.HasPrefix(path, "/files/"):
 		handleFileRequest(clientConn, path, request, directory)
-		clientConn.Close()
 	default:
 		clientConn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-		clientConn.Close()
 	}
 }
 
