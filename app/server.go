@@ -114,7 +114,6 @@ func handleFilePostRequest(conn net.Conn, filePath string, request []string) {
 	err := os.WriteFile(filePath, []byte(request[len(request)-1]), 0644)
 	if err != nil {
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-		conn.Close()
 		return
 	}
 
