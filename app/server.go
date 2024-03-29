@@ -66,13 +66,13 @@ func handleClient(clientConn net.Conn) {
 			clientConn.Close()
 		case strings.HasPrefix(path, "/echo/"):
 			content := formatPlainTextContent(strings.TrimPrefix(path, "/echo/"))
-			clientConn.Close()
 			clientConn.Write([]byte(content))
+			clientConn.Close()
 		case path == "/user-agent":
 			userAgent := strings.Split(request[2], " ")[1]
-			clientConn.Close()
 			content := formatPlainTextContent(userAgent)
 			clientConn.Write([]byte(content))
+			clientConn.Close()
 		case strings.HasPrefix(path, "/files/"):
 			handleFileRequest(clientConn, path, request, directory)
 			clientConn.Close()
